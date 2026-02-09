@@ -7,24 +7,31 @@
     <title>Estudo HSK</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1e1e1e">
+    <!-- Ícones do Google Fonts para o botão de tema (opcional, mas fica bonito) -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 </head>
 
 <body>
     <header>
-        <select id="hskLevel">
-            <option value="HSK1">HSK 1</option>
-            <option value="HSK2">HSK 2</option>
-            <option value="HSK3">HSK 3</option>
-            <option value="HSK4">HSK 4</option>
-            <option value="HSK5">HSK 5</option>
-            <option value="HSK6">HSK 6</option>
-        </select>
-        <select id="studyMode">
-            <option value="text">Texto</option>
-            <option value="qna">Diálogo</option>
-            <option value="vocab">Vocabulário</option>
-        </select>
+        <div class="controls">
+            <select id="hskLevel">
+                <option value="HSK1">HSK 1</option>
+                <option value="HSK2">HSK 2</option>
+                <option value="HSK3">HSK 3</option>
+                <option value="HSK4">HSK 4</option>
+                <option value="HSK5">HSK 5</option>
+                <option value="HSK6">HSK 6</option>
+                <option value="HSK7">HSK 7</option>
+            </select>
+            <select id="studyMode">
+                <option value="text">Texto</option>
+                <option value="qna">Diálogo</option>
+                <option value="vocab">Vocabulário</option>
+            </select>
+        </div>
+        <button id="themeToggle" class="icon-btn" aria-label="Mudar Tema">
+            <span class="material-icons-round">light_mode</span>
+        </button>
     </header>
 
     <main id="app">
@@ -40,6 +47,11 @@
     </main>
 
     <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
 </body>
 
 </html>

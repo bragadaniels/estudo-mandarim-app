@@ -1,11 +1,33 @@
 let appData = {};
 let currentItem = null;
+let qnaStep = 0;
 let currentState = {
     hsk: localStorage.getItem('last_hsk') || 'HSK1',
     mode: localStorage.getItem('last_mode') || 'text'
 };
-// Store weights in localStorage: key = "weights_HSK1_text"
 let weights = {};
+
+// Controle de Tema
+const themeToggleBtn = document.getElementById('themeToggle');
+const savedTheme = localStorage.getItem('theme') || 'dark';
+
+if (savedTheme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    themeToggleBtn.innerHTML = '<span class="material-icons-round">dark_mode</span>';
+}
+
+themeToggleBtn.onclick = () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    if (current === 'light') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+        themeToggleBtn.innerHTML = '<span class="material-icons-round">light_mode</span>';
+    } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+        themeToggleBtn.innerHTML = '<span class="material-icons-round">dark_mode</span>';
+    }
+};
 
 // --- Elementos ---
 const els = {
@@ -28,72 +50,51 @@ async function init() {
         loadWeights();
         nextRound();
     } catch (e) {
-        els.content.innerHTML = "Erro ao carregar dados. Verifique o data.json";
+        els.content.innerHTML = "<p style='color:red; text-align:center'>Erro ao carregar dados. <br>Use Ctrl+Shift+R para limpar o cache.</p>";
         console.error(e);
     }
 }
 
-// --- Lógica de Pesos (Igual ao Python) ---
-function getWeightsKey() {
-    return `w_${currentState.hsk}_${currentState.mode}`;
-}
+// --- Lógica de Pesos ---
+function getWeightsKey() { return `w_${currentState.hsk}_${currentState.mode}`; }
 
 function loadWeights() {
     const key = getWeightsKey();
     const stored = localStorage.getItem(key);
-
-    // Obter todas as chaves possíveis para o modo atual
     let allKeys = [];
     const data = appData[currentState.hsk];
-    if (!data) return;
 
-    if (currentState.mode === 'vocab') {
-        allKeys = Object.keys(data.vocab);
-    } else {
-        // text ou qna são arrays, usamos o ID ou índice
-        allKeys = data[currentState.mode].map(i => i.id);
-    }
+    if (!data) return;
+    if (currentState.mode === 'vocab') allKeys = Object.keys(data.vocab);
+    else allKeys = data[currentState.mode].map(i => i.id);
 
     if (stored) {
         weights = JSON.parse(stored);
-        // Verificar se há novas chaves não salvas
         allKeys.forEach(k => { if (weights[k] === undefined) weights[k] = 1.0; });
     } else {
-        // Inicializar tudo com 1.0
         weights = {};
         allKeys.forEach(k => weights[k] = 1.0);
     }
 }
 
-function saveWeights() {
-    localStorage.setItem(getWeightsKey(), JSON.stringify(weights));
-}
+function saveWeights() { localStorage.setItem(getWeightsKey(), JSON.stringify(weights)); }
 
 function draftItem() {
     const keys = Object.keys(weights);
     if (keys.length === 0) return null;
-
-    // Algoritmo de escolha ponderada
     let sum = 0;
     keys.forEach(k => sum += weights[k]);
-
     let rnd = Math.random() * sum;
-    let selectedKey = keys[keys.length - 1];
-
     for (let k of keys) {
         rnd -= weights[k];
-        if (rnd < 0) {
-            selectedKey = k;
-            break;
-        }
+        if (rnd < 0) return k;
     }
-    return selectedKey;
+    return keys[keys.length - 1];
 }
 
 function updateWeight(key) {
     const n = Object.keys(weights).length;
     let cfg = { min: 0.1, rec: 0.01 };
-
     if (n >= 180) cfg = { min: 0.01, rec: 0.05 };
     else if (n >= 90) cfg = { min: 0.02, rec: 0.03 };
     else if (n >= 30) cfg = { min: 0.05, rec: 0.02 };
@@ -105,87 +106,121 @@ function updateWeight(key) {
     saveWeights();
 }
 
-// --- Helpers de Texto ---
+// --- Helpers de Renderização ---
 function splitPinyin(text) {
+    if (!text) return { han: '', pin: '' };
+    text = text.normalize('NFC');
     const regex = /^(.+?)\s*\(([^()]*)\)\s*$/;
     const match = text.match(regex);
     if (match) return { han: match[1], pin: match[2] };
     return { han: text, pin: '' };
 }
 
-function renderChinese(text, label = '') {
+function renderBlock(text, label, extraClass = '') {
     const { han, pin } = splitPinyin(text);
-    let html = `<span class="label">${label}</span><div class="chinese-text">${han}</div>`;
-    if (pin) html += `<div class="pinyin-text">${pin}</div>`;
-    return html;
+    return `
+    <div class="cn-block ${extraClass}">
+        ${label ? `<span class="label">${label}</span>` : ''}
+        <div class="chinese-text">${han}</div>
+        ${pin ? `<div class="pinyin-text">${pin}</div>` : ''}
+    </div>`;
 }
 
-// --- Renderização ---
+// --- Funções Principais ---
 function nextRound() {
     const key = draftItem();
-    if (!key) {
-        els.content.innerHTML = "Sem dados para este nível/modo.";
-        return;
-    }
+    if (!key) { els.content.innerHTML = "Sem dados."; return; }
 
     const data = appData[currentState.hsk];
-
-    if (currentState.mode === 'vocab') {
-        currentItem = { key: key, data: data.vocab[key], type: 'vocab' };
-        els.content.innerHTML = renderChinese(key, 'Termo');
-    }
-    else if (currentState.mode === 'text') {
-        const item = data.text.find(x => x.id === key);
-        currentItem = { key: key, data: item, type: 'text' };
-        els.content.innerHTML = renderChinese(item.cn, 'Texto');
-    }
-    else if (currentState.mode === 'qna') {
-        const item = data.qna.find(x => x.id === key);
-        currentItem = { key: key, data: item, type: 'qna' };
-        els.content.innerHTML = `
-            ${renderChinese(item.cn.q, 'Pergunta')}
-            <hr style="border: 0; border-top: 1px solid #333; margin: 10px 0;">
-            <div id="qna-answer" class="hidden">
-                ${renderChinese(item.cn.a, 'Resposta')}
-            </div>
-        `;
-    }
+    qnaStep = 0;
 
     els.revealBtn.classList.remove('hidden');
     els.nextBtn.classList.add('hidden');
-    // Para QnA, o reveal tem 2 estagios, mas vamos simplificar: mostra Resposta CH + Traducoes
+    els.revealBtn.innerText = "Mostrar Tradução";
+
+    // Sempre aplica fade-in no carregamento inicial
+    let html = `<div class="fade-in">`;
+
+    if (currentState.mode === 'vocab') {
+        currentItem = { key: key, data: data.vocab[key] };
+        html += renderBlock(key, 'Termo');
+        html += `<div id="part-pt"></div>`; // Placeholder
+    }
+    else if (currentState.mode === 'text') {
+        const item = data.text.find(x => x.id === key);
+        currentItem = { key: key, data: item };
+        html += renderBlock(item.cn, 'Texto');
+        html += `<div id="part-pt"></div>`; // Placeholder
+    }
+    else if (currentState.mode === 'qna') {
+        els.revealBtn.innerText = "Mostrar Resposta";
+        const item = data.qna.find(x => x.id === key);
+        currentItem = { key: key, data: item };
+
+        html += renderBlock(item.cn.q, 'Pergunta');
+        html += `<div id="qna-answer"></div>`; // Placeholder
+        html += `<div id="part-pt"></div>`; // Placeholder
+    }
+
+    html += `</div>`; // fecha fade-in wrapper
+    els.content.innerHTML = html;
 }
 
 function reveal() {
-    let html = els.content.innerHTML;
+    // 1. TEXTO e VOCAB
+    if (currentState.mode !== 'qna') {
+        const ptDiv = document.getElementById('part-pt');
 
-    if (currentState.mode === 'vocab') {
-        html += `<div class="pt-text"><span class="label">Significado</span>${currentItem.data}</div>`;
-    }
-    else if (currentState.mode === 'text') {
-        html += `<div class="pt-text"><span class="label">Tradução</span>${currentItem.data.pt}</div>`;
-    }
-    else if (currentState.mode === 'qna') {
-        // Revelar a resposta em chinês se estava oculta
-        const ansDiv = document.getElementById('qna-answer');
-        if (ansDiv) ansDiv.classList.remove('hidden');
+        let ptText = (currentState.mode === 'vocab') ? currentItem.data : currentItem.data.pt;
 
-        html = els.content.innerHTML; // Pega o estado atual com a resposta visivel
-        html += `<div class="pt-text">
-            <span class="label">Tradução Pergunta</span>${currentItem.data.pt.q}<br><br>
-            <span class="label">Tradução Resposta</span>${currentItem.data.pt.a}
-        </div>`;
+        ptDiv.innerHTML = `
+            <div class="solid-divider"></div>
+            <div class="fade-in">
+                <span class="label">Tradução</span>
+                <div class="pt-text">${ptText}</div>
+            </div>
+        `;
+        finishRound();
     }
+    // 2. QnA (Passo a passo)
+    else {
+        if (qnaStep === 0) {
+            // Passo 1: Revelar Resposta em Chinês
+            const ansDiv = document.getElementById('qna-answer');
+            ansDiv.innerHTML = `
+                <div class="divider"></div>
+                <div class="fade-in">
+                    ${renderBlock(currentItem.data.cn.a, 'Resposta')}
+                </div>
+            `;
+            els.revealBtn.innerText = "Mostrar Tradução";
+            qnaStep = 1;
+        }
+        else if (qnaStep === 1) {
+            // Passo 2: Revelar Português
+            const ptDiv = document.getElementById('part-pt');
+            ptDiv.innerHTML = `
+                <div class="solid-divider"></div>
+                <div class="fade-in">
+                    <span class="label">Tradução Pergunta</span>
+                    <div class="pt-text">${currentItem.data.pt.q}</div>
+                    
+                    <span class="label">Tradução Resposta</span>
+                    <div class="pt-text">${currentItem.data.pt.a}</div>
+                </div>
+            `;
+            finishRound();
+        }
+    }
+}
 
-    els.content.innerHTML = html;
+function finishRound() {
     els.revealBtn.classList.add('hidden');
     els.nextBtn.classList.remove('hidden');
-
-    // Atualizar pesos
     updateWeight(currentItem.key);
 }
 
-// --- Event Listeners ---
+// --- Listeners ---
 els.revealBtn.onclick = reveal;
 els.nextBtn.onclick = nextRound;
 
@@ -203,11 +238,4 @@ els.mode.onchange = (e) => {
     nextRound();
 };
 
-// Iniciar
 init();
-
-// No final do app.js
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-        .then(() => console.log('Service Worker Registered'));
-}

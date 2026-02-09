@@ -1,11 +1,39 @@
 :root {
+    /* Tema Escuro (Padrão) */
     --bg: #121212;
-    --card: #1e1e1e;
+    --card-bg: #1e1e1e;
     --text: #e0e0e0;
+    --text-sec: #a0a0a0;
     --accent: #bb86fc;
+    /* Roxo suave */
+    --btn-text: #000;
     --secondary: #03dac6;
+    /* Verde água */
     --chinese: #81d4fa;
+    /* Azul claro */
     --pinyin: #fff176;
+    /* Amarelo */
+    --border: #333;
+    --select-bg: #333;
+}
+
+[data-theme="light"] {
+    /* Tema Claro */
+    --bg: #f0f2f5;
+    --card-bg: #ffffff;
+    --text: #212121;
+    --text-sec: #666666;
+    --accent: #6200ee;
+    /* Roxo forte */
+    --btn-text: #fff;
+    --secondary: #018786;
+    /* Verde escuro */
+    --chinese: #0277bd;
+    /* Azul escuro */
+    --pinyin: #d17d00;
+    /* Laranja escuro para contraste */
+    --border: #e0e0e0;
+    --select-bg: #fff;
 }
 
 body {
@@ -16,22 +44,50 @@ body {
     display: flex;
     flex-direction: column;
     height: 100vh;
+    transition: background-color 0.3s, color 0.3s;
 }
 
 header {
     padding: 15px;
-    background-color: #2c2c2c;
+    background-color: var(--card-bg);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    /* Empurra o botão de tema para a direita */
+    position: relative;
+    /* Necessário para centralizar o filho absoluto */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    height: 60px;
+    /* Altura fixa ajuda na estabilidade */
+    box-sizing: border-box;
+}
+
+.controls {
     display: flex;
     gap: 10px;
-    justify-content: center;
+
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+@media (max-width: 400px) {
+    header {
+        justify-content: space-between;
+    }
+
+    .controls {
+        position: static;
+        transform: none;
+    }
 }
 
 select {
     padding: 8px;
-    background: #333;
-    color: #fff;
-    border: 1px solid #444;
-    border-radius: 4px;
+    background: var(--select-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
     font-size: 1rem;
 }
 
@@ -44,68 +100,127 @@ main {
 }
 
 .card {
-    background: var(--card);
-    padding: 20px;
-    border-radius: 12px;
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: 16px;
     width: 100%;
-    max-width: 600px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     min-height: 300px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    transition: background-color 0.3s;
 }
 
+/* Tipografia */
 .chinese-text {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     color: var(--chinese);
-    margin-bottom: 5px;
+    margin-bottom: 4px;
+    font-weight: 500;
 }
 
 .pinyin-text {
     font-size: 1.1rem;
     color: var(--pinyin);
-    margin-bottom: 15px;
-    font-style: italic;
+    margin-bottom: 12px;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.5px;
 }
 
 .pt-text {
     font-size: 1.1rem;
     color: var(--text);
-    border-top: 1px solid #333;
-    padding-top: 15px;
-    margin-top: 15px;
+    line-height: 1.5;
 }
 
 .label {
-    font-size: 0.8rem;
-    color: #888;
+    font-size: 0.75rem;
+    color: var(--text-sec);
     text-transform: uppercase;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
     display: block;
+    letter-spacing: 0.5px;
+    margin-top: 15px;
 }
 
+/* Separadores */
+.divider {
+    border: 0;
+    border-top: 1px dashed var(--border);
+    margin: 15px 0;
+}
+
+.solid-divider {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 15px 0;
+}
+
+/* Botões */
 button {
     width: 100%;
-    padding: 15px;
+    padding: 16px;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     background-color: var(--accent);
-    color: #000;
+    color: var(--btn-text);
     font-weight: bold;
     font-size: 1rem;
     cursor: pointer;
-    margin-top: 20px;
+    margin-top: 10px;
+    transition: transform 0.1s, filter 0.2s;
 }
 
 button:active {
     transform: scale(0.98);
 }
 
-.hidden {
-    display: none;
-}
-
 #nextBtn {
     background-color: var(--secondary);
+    color: #fff;
+}
+
+/* Botão de Tema (Redondo e pequeno) */
+.icon-btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    margin: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+}
+
+.icon-btn:hover {
+    background-color: rgba(128, 128, 128, 0.1);
+}
+
+/* Utilitários */
+.hidden {
+    display: none !important;
+}
+
+/* Animações Consistentes */
+.fade-in {
+    animation: fadeInUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: transform, opacity;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
