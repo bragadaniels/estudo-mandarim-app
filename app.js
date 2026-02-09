@@ -260,49 +260,48 @@ function loadVoices() {
 window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
-function speak(text) {
-    if (!window.speechSynthesis) return;
+// Forçamos a função a ser global para que o onclick do HTML a encontre sempre
+window.speak = function(text) {
+    console.log("Tentando falar:", text); // Isso TEM que aparecer no Eruda agora
 
-    window.speechSynthesis.cancel();
-
-    const chineseOnly = text.split('(')[0].trim().normalize('NFC');
-    const msg = new SpeechSynthesisUtterance(chineseOnly);
-
-    // Pega as vozes disponíveis
-    let voices = window.speechSynthesis.getVoices();
-
-    // --- LÓGICA DE SELEÇÃO DE VOZ OFFLINE ---
-    // 1. Procuramos vozes de chinês que NÃO sejam "Online" (para garantir que funcione sem internet)
-    let localChineseVoice = voices.find(v =>
-        (v.lang.includes('zh-CN') || v.lang.includes('zh')) &&
-        !v.name.includes('Online') &&
-        !v.name.includes('Natural')
-    );
-
-    // 2. Se não achou uma local pura, tenta qualquer uma de chinês (mesmo online) como fallback
-    if (!localChineseVoice) {
-        localChineseVoice = voices.find(v => v.lang.includes('zh-CN') || v.lang.includes('zh'));
+    if (!window.speechSynthesis) {
+        console.error("Navegador não suporta speechSynthesis");
+        return;
     }
 
-    if (localChineseVoice) {
-        msg.voice = localChineseVoice;
-        console.log("Voz selecionada:", localChineseVoice.name, localChineseVoice.localService ? "(Local/Offline)" : "(Online)");
+    // Para o que estiver falando
+    window.speechSynthesis.cancel();
+
+    // Limpeza rigorosa
+    const chineseOnly = text.split('(')[0].trim().normalize('NFC');
+    const msg = new SpeechSynthesisUtterance(chineseOnly);
+    
+    // Tenta pegar vozes
+    let voices = window.speechSynthesis.getVoices();
+    
+    // No mobile, se as vozes não carregaram, tentamos buscar de novo
+    if (voices.length === 0) {
+        console.log("Vozes vazias, tentando recarregar...");
+        voices = window.speechSynthesis.getVoices();
+    }
+
+    // Tenta achar a voz chinesa
+    let chineseVoice = voices.find(v => (v.lang.includes('zh-CN') || v.lang.includes('zh')) && !v.name.includes('Online'));
+    
+    if (!chineseVoice) {
+        chineseVoice = voices.find(v => v.lang.includes('zh'));
+    }
+
+    if (chineseVoice) {
+        msg.voice = chineseVoice;
+        console.log("Voz selecionada no celular:", chineseVoice.name);
     }
 
     msg.lang = 'zh-CN';
     msg.rate = 0.8;
 
-    msg.onerror = (e) => {
-        console.warn("Erro no TTS ou Voz não disponível:", e.error);
-        // Removemos o alert para não interromper seu estudo
-    };
-
-    // Se o navegador disser que não tem vozes, tenta recarregar a lista
-    if (window.speechSynthesis.getVoices().length === 0) {
-        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.speak(msg);
-    } else {
-        window.speechSynthesis.speak(msg);
-    }
+    msg.onstart = () => console.log("Áudio começou!");
+    msg.onerror = (e) => console.error("Erro no TTS:", e.error);
 
     window.speechSynthesis.speak(msg);
-}
+};
