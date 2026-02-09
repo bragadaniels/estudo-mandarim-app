@@ -260,26 +260,47 @@ function loadVoices() {
 window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
-// Forçamos a função a ser global para que o onclick do HTML a encontre sempre
 window.speak = function(text) {
-    // 1. Acorda o motor (Fix para Chrome Android)
-    window.speechSynthesis.resume();
-    window.speechSynthesis.cancel();
+    const synth = window.speechSynthesis;
+    synth.resume();
+    synth.cancel();
 
-    // 2. Limpa o texto
     const chineseOnly = text.split('(')[0].trim().normalize('NFC');
-    console.log("Falando agora:", chineseOnly);
+    console.log("--- TESTE DE ÁUDIO ---");
+    console.log("Texto:", chineseOnly);
+
+    // Listar vozes para diagnóstico no Eruda
+    let voices = synth.getVoices();
+    console.log("Total de vozes encontradas:", voices.length);
+    
+    // Procura especificamente vozes de Mandarim
+    let zhVoices = voices.filter(v => v.lang.includes('zh') || v.lang.includes('CN'));
+    zhVoices.forEach(v => console.log(`Disponível: ${v.name} (${v.localService ? 'Offline' : 'Online'})`));
 
     const msg = new SpeechSynthesisUtterance(chineseOnly);
-    
-    // 3. NÃO definimos msg.voice. 
-    // Deixamos o sistema operacional escolher a voz padrão de chinês.
-    msg.lang = 'zh-CN'; 
+    msg.lang = 'zh-CN';
     msg.rate = 0.8;
 
-    msg.onstart = () => console.log(">>> O sistema diz que está saindo som agora!");
-    msg.onerror = (e) => console.error("Erro real:", e.error);
+    // TENTA ENCONTRAR UMA VOZ QUE SEJA LOCAL (OFFLINE)
+    // No Android, geralmente é "Google 普通话" ou "Samsung Core"
+    let bestVoice = zhVoices.find(v => v.localService === true) || zhVoices[0];
 
-    window.speechSynthesis.speak(msg);
+    if (bestVoice) {
+        msg.voice = bestVoice;
+        console.log("Voz escolhida:", bestVoice.name);
+    } else {
+        console.warn("Nenhuma voz chinesa encontrada na lista!");
+    }
+
+    msg.onstart = () => console.log(">>> Áudio disparado!");
+    msg.onerror = (e) => console.error("ERRO NO MOTOR:", e.error);
+
+    synth.speak(msg);
 };
+
+// HACK PARA MOBILE: As vozes demoram a carregar. Esse evento força o sistema a acordar.
+window.speechSynthesis.onvoiceschanged = () => {
+    console.log("Vozes atualizadas pelo sistema.");
+};
+
 
