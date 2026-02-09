@@ -1,98 +1,99 @@
+// ==================== app.js (versão limpa + toggle de velocidade) ====================
+
 let appData = {};
 let currentItem = null;
 let qnaStep = 0;
 let currentState = {
     hsk: localStorage.getItem('last_hsk') || 'HSK1',
-    mode: localStorage.getItem('last_mode') || 'text',
-    speed: parseFloat(localStorage.getItem('speech_speed')) || 1.0
+    mode: localStorage.getItem('last_mode') || 'text'
 };
 let weights = {};
 
-// --- UI Elements ---
+// Velocidade da fala (persistente)
+let speechRate = parseFloat(localStorage.getItem('speechRate')) || 1.0;
+
+// Controle de Tema
+const themeToggleBtn = document.getElementById('themeToggle');
+const savedTheme = localStorage.getItem('theme') || 'dark';
+
+if (savedTheme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    themeToggleBtn.innerHTML = '<span class="material-icons-round">dark_mode</span>';
+}
+
+themeToggleBtn.onclick = () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    if (current === 'light') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+        themeToggleBtn.innerHTML = '<span class="material-icons-round">light_mode</span>';
+    } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+        themeToggleBtn.innerHTML = '<span class="material-icons-round">dark_mode</span>';
+    }
+};
+
+// Toggle de velocidade da fala
+let rateToggleBtn;
+
+function createRateToggle() {
+    rateToggleBtn = document.createElement('button');
+    rateToggleBtn.className = 'icon-btn rate-toggle';
+    rateToggleBtn.style.marginLeft = '8px';
+
+    rateToggleBtn.innerHTML = `
+        <span class="material-icons-round volume-icon">volume_up</span>
+        <span id="rate-text" class="rate-text">${speechRate}x</span>
+    `;
+
+    document.querySelector('header').appendChild(rateToggleBtn);
+    rateToggleBtn.onclick = cycleSpeechRate;
+}
+
+function cycleSpeechRate() {
+    const rates = [0.75, 1.0, 1.25];
+    let idx = rates.findIndex(r => Math.abs(r - speechRate) < 0.01);
+    idx = (idx + 1) % rates.length;
+    speechRate = rates[idx];
+    localStorage.setItem('speechRate', speechRate);
+    updateRateDisplay();
+}
+
+function updateRateDisplay() {
+    const textEl = document.getElementById('rate-text');
+    if (textEl) textEl.textContent = `${speechRate}x`;
+}
+
+// --- Elementos ---
 const els = {
     hsk: document.getElementById('hskLevel'),
     mode: document.getElementById('studyMode'),
     content: document.getElementById('content-area'),
     revealBtn: document.getElementById('revealBtn'),
-    nextBtn: document.getElementById('nextBtn'),
-    themeBtn: document.getElementById('themeToggle'),
-    speedBtn: document.getElementById('speedToggle'),
-    speedIcon: document.getElementById('speedIcon')
+    nextBtn: document.getElementById('nextBtn')
 };
 
-// --- Configuração Inicial ---
-// Tema
-if (localStorage.getItem('theme') === 'light') {
-    document.documentElement.setAttribute('data-theme', 'light');
-    els.themeBtn.innerHTML = '<span class="material-icons-round">dark_mode</span>';
-}
-
-els.themeBtn.onclick = () => {
-    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-    const newTheme = isLight ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    els.themeBtn.innerHTML = `<span class="material-icons-round">${isLight ? 'light_mode' : 'dark_mode'}</span>`;
-};
-
-// Velocidade
-els.speedIcon.innerText = currentState.speed + 'x';
-els.speedBtn.onclick = () => {
-    const speeds = [0.7, 1.0, 1.2];
-    let idx = speeds.indexOf(currentState.speed);
-    currentState.speed = speeds[(idx + 1) % speeds.length]; // Cicla as velocidades
-    localStorage.setItem('speech_speed', currentState.speed);
-    els.speedIcon.innerText = currentState.speed + 'x';
-};
-
-// --- MOTOR TTS (ÁUDIO) ---
-window.speak = function(text) {
-    if (!window.speechSynthesis) return;
-
-    // Reseta o motor (importante para Chrome/Android)
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.resume();
-
-    const cleanText = text.split('(')[0].trim().normalize('NFC');
-    const msg = new SpeechSynthesisUtterance(cleanText);
-    
-    // Seleção Inteligente de Voz
-    const voices = window.speechSynthesis.getVoices();
-    
-    // Tenta voz local (offline) primeiro
-    const voice = voices.find(v => (v.lang.includes('zh-CN') || v.lang.includes('zh')) && v.localService) 
-               || voices.find(v => v.lang.includes('zh')); // Fallback
-
-    if (voice) msg.voice = voice;
-    
-    msg.lang = 'zh-CN';
-    msg.rate = currentState.speed;
-
-    // Hack para acordar o sistema se a lista estiver vazia (Mobile)
-    if (voices.length === 0) {
-        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.speak(msg);
-    } else {
-        window.speechSynthesis.speak(msg);
-    }
-};
-
-// --- LÓGICA DO APP ---
+// --- Inicialização ---
 async function init() {
     try {
         const response = await fetch('assets/data.json');
         appData = await response.json();
-        
+
         els.hsk.value = currentState.hsk;
         els.mode.value = currentState.mode;
-        
+
         loadWeights();
         nextRound();
+
+        createRateToggle();           // cria o botão de velocidade
     } catch (e) {
-        els.content.innerHTML = "<p style='text-align:center; color: red'>Erro ao carregar dados.<br>Verifique se rodou o script Python.</p>";
+        els.content.innerHTML = "<p style='color:red; text-align:center'>Erro ao carregar dados. <br>Use Ctrl+Shift+R para limpar o cache.</p>";
+        console.error(e);
     }
 }
 
-// Pesos (Spaced Repetition)
+// --- Lógica de Pesos ---
 function getWeightsKey() { return `w_${currentState.hsk}_${currentState.mode}`; }
 
 function loadWeights() {
@@ -100,7 +101,7 @@ function loadWeights() {
     const stored = localStorage.getItem(key);
     let allKeys = [];
     const data = appData[currentState.hsk];
-    
+
     if (!data) return;
     if (currentState.mode === 'vocab') allKeys = Object.keys(data.vocab);
     else allKeys = data[currentState.mode].map(i => i.id);
@@ -143,84 +144,120 @@ function updateWeight(key) {
     saveWeights();
 }
 
-// Helpers de Texto
+// --- Helpers de Renderização ---
 function splitPinyin(text) {
     if (!text) return { han: '', pin: '' };
     text = text.normalize('NFC');
     const regex = /^(.+?)\s*\(([^()]*)\)\s*$/;
     const match = text.match(regex);
-    return match ? { han: match[1], pin: match[2] } : { han: text, pin: '' };
+    if (match) return { han: match[1], pin: match[2] };
+    return { han: text, pin: '' };
 }
 
-function renderBlock(text, label, extraClass='') {
+function renderBlock(text, label, extraClass = '') {
     const { han, pin } = splitPinyin(text);
-    // Escape para JS
-    const cleanHan = han.replace(/'/g, "\\'"); 
-    
+    // Normalizamos para garantir que o TTS leia corretamente
+    const cleanHan = han.normalize('NFC');
+
     return `
     <div class="cn-block ${extraClass}">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="flex: 1">
+            <div>
                 ${label ? `<span class="label">${label}</span>` : ''}
                 <div class="chinese-text">${han}</div>
                 ${pin ? `<div class="pinyin-text">${pin}</div>` : ''}
             </div>
-            <button onclick="window.speak('${cleanHan}')" class="audio-btn" title="Ouvir">
+            <!-- Botão de Áudio -->
+            <button onclick="window.speak(\`${cleanHan}\`)" class="audio-btn" title="Ouvir">
                 <span class="material-icons-round">volume_up</span>
             </button>
         </div>
     </div>`;
 }
 
-// Renderização Principal
+// --- Funções Principais ---
 function nextRound() {
     const key = draftItem();
     if (!key) { els.content.innerHTML = "Sem dados."; return; }
-    
+
     const data = appData[currentState.hsk];
     qnaStep = 0;
+
     els.revealBtn.classList.remove('hidden');
     els.nextBtn.classList.add('hidden');
     els.revealBtn.innerText = "Mostrar Tradução";
 
+    // Sempre aplica fade-in no carregamento inicial
     let html = `<div class="fade-in">`;
 
     if (currentState.mode === 'vocab') {
-        currentItem = { key, data: data.vocab[key] };
+        currentItem = { key: key, data: data.vocab[key] };
         html += renderBlock(key, 'Termo');
-        html += `<div id="part-pt"></div>`;
-    } 
+        html += `<div id="part-pt"></div>`; // Placeholder
+    }
     else if (currentState.mode === 'text') {
         const item = data.text.find(x => x.id === key);
-        currentItem = { key, data: item };
+        currentItem = { key: key, data: item };
         html += renderBlock(item.cn, 'Texto');
-        html += `<div id="part-pt"></div>`;
+        html += `<div id="part-pt"></div>`; // Placeholder
     }
     else if (currentState.mode === 'qna') {
-        const item = data.qna.find(x => x.id === key);
-        currentItem = { key, data: item };
         els.revealBtn.innerText = "Mostrar Resposta";
+        const item = data.qna.find(x => x.id === key);
+        currentItem = { key: key, data: item };
+
         html += renderBlock(item.cn.q, 'Pergunta');
-        html += `<div id="qna-answer"></div><div id="part-pt"></div>`;
+        html += `<div id="qna-answer"></div>`; // Placeholder
+        html += `<div id="part-pt"></div>`; // Placeholder
     }
-    
-    html += `</div>`;
+
+    html += `</div>`; // fecha fade-in wrapper
     els.content.innerHTML = html;
 }
 
 function reveal() {
+    // 1. TEXTO e VOCAB
     if (currentState.mode !== 'qna') {
         const ptDiv = document.getElementById('part-pt');
-        const txt = (currentState.mode === 'vocab') ? currentItem.data : currentItem.data.pt;
-        ptDiv.innerHTML = `<div class="solid-divider"></div><div class="fade-in"><span class="label">Tradução</span><div class="pt-text">${txt}</div></div>`;
+
+        let ptText = (currentState.mode === 'vocab') ? currentItem.data : currentItem.data.pt;
+
+        ptDiv.innerHTML = `
+            <div class="solid-divider"></div>
+            <div class="fade-in">
+                <span class="label">Tradução</span>
+                <div class="pt-text">${ptText}</div>
+            </div>
+        `;
         finishRound();
-    } else {
+    }
+    // 2. QnA (Passo a passo)
+    else {
         if (qnaStep === 0) {
-            document.getElementById('qna-answer').innerHTML = `<div class="divider"></div><div class="fade-in">${renderBlock(currentItem.data.cn.a, 'Resposta')}</div>`;
+            // Passo 1: Revelar Resposta em Chinês
+            const ansDiv = document.getElementById('qna-answer');
+            ansDiv.innerHTML = `
+                <div class="divider"></div>
+                <div class="fade-in">
+                    ${renderBlock(currentItem.data.cn.a, 'Resposta')}
+                </div>
+            `;
             els.revealBtn.innerText = "Mostrar Tradução";
             qnaStep = 1;
-        } else {
-            document.getElementById('part-pt').innerHTML = `<div class="solid-divider"></div><div class="fade-in"><span class="label">Tradução Pergunta</span><div class="pt-text">${currentItem.data.pt.q}</div><span class="label">Tradução Resposta</span><div class="pt-text">${currentItem.data.pt.a}</div></div>`;
+        }
+        else if (qnaStep === 1) {
+            // Passo 2: Revelar Português
+            const ptDiv = document.getElementById('part-pt');
+            ptDiv.innerHTML = `
+                <div class="solid-divider"></div>
+                <div class="fade-in">
+                    <span class="label">Tradução Pergunta</span>
+                    <div class="pt-text">${currentItem.data.pt.q}</div>
+                    
+                    <span class="label">Tradução Resposta</span>
+                    <div class="pt-text">${currentItem.data.pt.a}</div>
+                </div>
+            `;
             finishRound();
         }
     }
@@ -232,6 +269,58 @@ function finishRound() {
     updateWeight(currentItem.key);
 }
 
-// Event Listeners
+// --- Listeners ---
+// --- Função de fala (limpa e com velocidade) ---
+let voices = [];
+function loadVoices() {
+    voices = window.speechSynthesis.getVoices();
+}
+
+window.speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
+
+window.speak = function (text) {
+    const synth = window.speechSynthesis;
+    synth.resume();
+    synth.cancel();
+
+    const chineseOnly = text.split('(')[0].trim().normalize('NFC');
+
+    const msg = new SpeechSynthesisUtterance(chineseOnly);
+    msg.lang = 'zh-CN';
+    msg.rate = speechRate;                     // ← usa a velocidade escolhida
+
+    // Tenta usar voz chinesa offline
+    let zhVoices = synth.getVoices().filter(v => v.lang.includes('zh') || v.lang.includes('CN'));
+    let bestVoice = zhVoices.find(v => v.localService === true) || zhVoices[0];
+    if (bestVoice) msg.voice = bestVoice;
+
+    synth.speak(msg);
+};
+
+// HACK para mobile (mantido, mas sem logs)
+window.speechSynthesis.onvoiceschanged = () => {
+    loadVoices();
+};
+
+// (as funções loadWeights, draftItem, updateWeight, splitPinyin, renderBlock,
+// nextRound, reveal, finishRound e os listeners continuam exatamente iguais)
+
 els.revealBtn.onclick = reveal;
-els.nextBtn.oncl
+els.nextBtn.onclick = nextRound;
+
+els.hsk.onchange = (e) => {
+    currentState.hsk = e.target.value;
+    localStorage.setItem('last_hsk', currentState.hsk);
+    loadWeights();
+    nextRound();
+};
+
+els.mode.onchange = (e) => {
+    currentState.mode = e.target.value;
+    localStorage.setItem('last_mode', currentState.mode);
+    loadWeights();
+    nextRound();
+};
+
+init();
