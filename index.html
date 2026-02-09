@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <meta name="theme-color" content="#1e1e1e">
 </head>
 <body>
     <header>
@@ -26,11 +27,14 @@
                 <option value="vocab">Vocabulário</option>
             </select>
         </div>
+        
         <div class="header-btns">
-            <button id="speedToggle" class="icon-btn" title="Velocidade da Fala">
-                <span id="speedIcon" style="font-size: 14px; font-weight: bold;">1x</span>
+            <!-- Toggle Velocidade -->
+            <button id="speedToggle" class="icon-btn" title="Velocidade">
+                <span id="speedIcon" style="font-size: 13px; font-weight: bold;">1x</span>
             </button>
-            <button id="themeToggle" class="icon-btn">
+            <!-- Toggle Tema -->
+            <button id="themeToggle" class="icon-btn" title="Tema">
                 <span class="material-icons-round">light_mode</span>
             </button>
         </div>
@@ -38,7 +42,9 @@
 
     <main id="app">
         <div id="card" class="card">
-            <div id="content-area"></div>
+            <div id="content-area">
+                <!-- Conteúdo via JS -->
+            </div>
             <div id="action-area">
                 <button id="revealBtn">Mostrar Tradução</button>
                 <button id="nextBtn" class="hidden">Próximo</button>
@@ -49,7 +55,8 @@
     <script src="app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('SW Registrado'));
         }
     </script>
 </body>
