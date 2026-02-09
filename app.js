@@ -118,11 +118,22 @@ function splitPinyin(text) {
 
 function renderBlock(text, label, extraClass = '') {
     const { han, pin } = splitPinyin(text);
+    // Normalizamos para garantir que o TTS leia corretamente
+    const cleanHan = han.normalize('NFC');
+
     return `
     <div class="cn-block ${extraClass}">
-        ${label ? `<span class="label">${label}</span>` : ''}
-        <div class="chinese-text">${han}</div>
-        ${pin ? `<div class="pinyin-text">${pin}</div>` : ''}
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                ${label ? `<span class="label">${label}</span>` : ''}
+                <div class="chinese-text">${han}</div>
+                ${pin ? `<div class="pinyin-text">${pin}</div>` : ''}
+            </div>
+            <!-- Botão de Áudio -->
+            <button onclick="speak('${cleanHan}')" class="audio-btn" title="Ouvir">
+                <span class="material-icons-round">volume_up</span>
+            </button>
+        </div>
     </div>`;
 }
 
@@ -239,3 +250,59 @@ els.mode.onchange = (e) => {
 };
 
 init();
+
+// Função para carregar vozes (importante para Chrome/Edge)
+let voices = [];
+function loadVoices() {
+    voices = window.speechSynthesis.getVoices();
+}
+// Aciona o carregamento
+window.speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
+
+function speak(text) {
+    if (!window.speechSynthesis) return;
+
+    window.speechSynthesis.cancel();
+
+    const chineseOnly = text.split('(')[0].trim().normalize('NFC');
+    const msg = new SpeechSynthesisUtterance(chineseOnly);
+
+    // Pega as vozes disponíveis
+    let voices = window.speechSynthesis.getVoices();
+
+    // --- LÓGICA DE SELEÇÃO DE VOZ OFFLINE ---
+    // 1. Procuramos vozes de chinês que NÃO sejam "Online" (para garantir que funcione sem internet)
+    let localChineseVoice = voices.find(v =>
+        (v.lang.includes('zh-CN') || v.lang.includes('zh')) &&
+        !v.name.includes('Online') &&
+        !v.name.includes('Natural')
+    );
+
+    // 2. Se não achou uma local pura, tenta qualquer uma de chinês (mesmo online) como fallback
+    if (!localChineseVoice) {
+        localChineseVoice = voices.find(v => v.lang.includes('zh-CN') || v.lang.includes('zh'));
+    }
+
+    if (localChineseVoice) {
+        msg.voice = localChineseVoice;
+        console.log("Voz selecionada:", localChineseVoice.name, localChineseVoice.localService ? "(Local/Offline)" : "(Online)");
+    }
+
+    msg.lang = 'zh-CN';
+    msg.rate = 0.8;
+
+    msg.onerror = (e) => {
+        console.warn("Erro no TTS ou Voz não disponível:", e.error);
+        // Removemos o alert para não interromper seu estudo
+    };
+
+    // Se o navegador disser que não tem vozes, tenta recarregar a lista
+    if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.speak(msg);
+    } else {
+        window.speechSynthesis.speak(msg);
+    }
+
+    window.speechSynthesis.speak(msg);
+}

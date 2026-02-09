@@ -224,3 +224,27 @@ button:active {
         transform: translateY(0);
     }
 }
+
+.audio-btn {
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    color: var(--accent) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.audio-btn:hover {
+    background-color: rgba(128, 128, 128, 0.1) !important;
+}
+
+.audio-btn .material-icons-round {
+    font-size: 20px;
+}
