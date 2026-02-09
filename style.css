@@ -5,14 +5,10 @@
     --text: #e0e0e0;
     --text-sec: #a0a0a0;
     --accent: #bb86fc;
-    /* Roxo suave */
     --btn-text: #000;
     --secondary: #03dac6;
-    /* Verde água */
     --chinese: #81d4fa;
-    /* Azul claro */
     --pinyin: #fff176;
-    /* Amarelo */
     --border: #333;
     --select-bg: #333;
 }
@@ -24,14 +20,10 @@
     --text: #212121;
     --text-sec: #666666;
     --accent: #6200ee;
-    /* Roxo forte */
     --btn-text: #fff;
     --secondary: #018786;
-    /* Verde escuro */
     --chinese: #0277bd;
-    /* Azul escuro */
     --pinyin: #d17d00;
-    /* Laranja escuro para contraste */
     --border: #e0e0e0;
     --select-bg: #fff;
 }
@@ -48,38 +40,29 @@ body {
 }
 
 header {
-    padding: 15px;
+    padding: 10px 15px;
     background-color: var(--card-bg);
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    /* Empurra o botão de tema para a direita */
     position: relative;
-    /* Necessário para centralizar o filho absoluto */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     height: 60px;
-    /* Altura fixa ajuda na estabilidade */
     box-sizing: border-box;
 }
 
 .controls {
     display: flex;
     gap: 10px;
-
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
 }
 
-@media (max-width: 400px) {
-    header {
-        justify-content: space-between;
-    }
-
-    .controls {
-        position: static;
-        transform: none;
-    }
+.header-btns {
+    display: flex;
+    gap: 10px;
+    z-index: 10;
 }
 
 select {
@@ -89,6 +72,7 @@ select {
     border: 1px solid var(--border);
     border-radius: 6px;
     font-size: 1rem;
+    max-width: 120px;
 }
 
 main {
@@ -105,7 +89,7 @@ main {
     border-radius: 16px;
     width: 100%;
     max-width: 500px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     min-height: 300px;
     display: flex;
     flex-direction: column;
@@ -113,53 +97,24 @@ main {
     transition: background-color 0.3s;
 }
 
-/* Tipografia */
-.chinese-text {
-    font-size: 1.8rem;
-    color: var(--chinese);
-    margin-bottom: 4px;
-    font-weight: 500;
+.chinese-text { font-size: 1.8rem; color: var(--chinese); margin-bottom: 4px; font-weight: 500; }
+.pinyin-text { 
+    font-size: 1.1rem; 
+    color: var(--pinyin); 
+    margin-bottom: 12px; 
+    font-style: italic; 
+    font-family: "Segoe UI", Roboto, Arial, sans-serif; /* Importante para acentos */
 }
+.pt-text { font-size: 1.1rem; color: var(--text); line-height: 1.5; }
+.label { font-size: 0.75rem; color: var(--text-sec); text-transform: uppercase; margin-bottom: 4px; display: block; letter-spacing: 0.5px; margin-top: 15px; }
 
-.pinyin-text {
-    font-size: 1.1rem;
-    color: var(--pinyin);
-    margin-bottom: 12px;
-    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-weight: 400;
-    letter-spacing: 0.5px;
-}
-
-.pt-text {
-    font-size: 1.1rem;
-    color: var(--text);
-    line-height: 1.5;
-}
-
-.label {
-    font-size: 0.75rem;
-    color: var(--text-sec);
-    text-transform: uppercase;
-    margin-bottom: 4px;
-    display: block;
-    letter-spacing: 0.5px;
-    margin-top: 15px;
-}
-
-/* Separadores */
-.divider {
+.divider, .solid-divider {
     border: 0;
     border-top: 1px dashed var(--border);
     margin: 15px 0;
 }
+.solid-divider { border-top-style: solid; }
 
-.solid-divider {
-    border: 0;
-    border-top: 1px solid var(--border);
-    margin: 15px 0;
-}
-
-/* Botões */
 button {
     width: 100%;
     padding: 16px;
@@ -171,88 +126,41 @@ button {
     font-size: 1rem;
     cursor: pointer;
     margin-top: 10px;
-    transition: transform 0.1s, filter 0.2s;
 }
+button:active { transform: scale(0.98); }
+#nextBtn { background-color: var(--secondary); color: #fff; }
 
-button:active {
-    transform: scale(0.98);
-}
-
-#nextBtn {
-    background-color: var(--secondary);
-    color: #fff;
-}
-
-/* Botão de Tema (Redondo e pequeno) */
-
-.header-btns {
-    display: flex;
-    gap: 8px;
-    z-index: 10;
-}
-
-.icon-btn {
-    width: 38px;
-    height: 38px;
-    padding: 0;
-    margin: 0;
-    border-radius: 50%;
-    background: transparent;
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--border);
-    cursor: pointer;
-}
-
-.icon-btn:hover {
-    background-color: rgba(128, 128, 128, 0.1);
-}
-
-/* Utilitários */
-.hidden {
-    display: none !important;
-}
-
-/* Animações Consistentes */
-.fade-in {
-    animation: fadeInUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-    will-change: transform, opacity;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.audio-btn {
-    width: 44px !important;
-    height: 44px !important;
-    background: transparent !important;
-    color: var(--accent) !important;
-    border: 1px solid var(--border) !important;
+/* Botões Redondos (Header e Áudio) */
+.icon-btn, .audio-btn {
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    margin: 0 !important;
     border-radius: 50% !important;
+    background: transparent !important;
+    color: var(--text);
     display: flex !important;
     align-items: center;
     justify-content: center;
-    margin: 0 !important;
+    border: 1px solid var(--border) !important;
+    cursor: pointer;
     flex-shrink: 0;
 }
+.audio-btn { color: var(--accent) !important; }
+.icon-btn:hover, .audio-btn:hover { background-color: rgba(128,128,128,0.1) !important; }
 
-.audio-btn:hover {
-    background-color: rgba(128, 128, 128, 0.1) !important;
+.hidden { display: none !important; }
+
+.fade-in {
+    animation: fadeInUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.audio-btn .material-icons-round {
-    font-size: 20px;
-
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
+@media (max-width: 400px) {
+    header { justify-content: space-between; }
+    .controls { position: static; transform: none; }
+}
