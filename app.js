@@ -3,59 +3,96 @@ let currentItem = null;
 let qnaStep = 0;
 let currentState = {
     hsk: localStorage.getItem('last_hsk') || 'HSK1',
-    mode: localStorage.getItem('last_mode') || 'text'
+    mode: localStorage.getItem('last_mode') || 'text',
+    speed: parseFloat(localStorage.getItem('speech_speed')) || 1.0
 };
 let weights = {};
 
-// Controle de Tema
-const themeToggleBtn = document.getElementById('themeToggle');
-const savedTheme = localStorage.getItem('theme') || 'dark';
-
-if (savedTheme === 'light') {
-    document.documentElement.setAttribute('data-theme', 'light');
-    themeToggleBtn.innerHTML = '<span class="material-icons-round">dark_mode</span>';
-}
-
-themeToggleBtn.onclick = () => {
-    const current = document.documentElement.getAttribute('data-theme');
-    if (current === 'light') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
-        themeToggleBtn.innerHTML = '<span class="material-icons-round">light_mode</span>';
-    } else {
-        document.documentElement.setAttribute('data-theme', 'light');
-        localStorage.setItem('theme', 'light');
-        themeToggleBtn.innerHTML = '<span class="material-icons-round">dark_mode</span>';
-    }
-};
-
-// --- Elementos ---
+// --- UI Elements ---
 const els = {
     hsk: document.getElementById('hskLevel'),
     mode: document.getElementById('studyMode'),
     content: document.getElementById('content-area'),
     revealBtn: document.getElementById('revealBtn'),
-    nextBtn: document.getElementById('nextBtn')
+    nextBtn: document.getElementById('nextBtn'),
+    themeBtn: document.getElementById('themeToggle'),
+    speedBtn: document.getElementById('speedToggle'),
+    speedIcon: document.getElementById('speedIcon')
 };
 
-// --- Inicialização ---
+// --- Configuração Inicial ---
+// Tema
+if (localStorage.getItem('theme') === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    els.themeBtn.innerHTML = '<span class="material-icons-round">dark_mode</span>';
+}
+
+els.themeBtn.onclick = () => {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const newTheme = isLight ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    els.themeBtn.innerHTML = `<span class="material-icons-round">${isLight ? 'light_mode' : 'dark_mode'}</span>`;
+};
+
+// Velocidade
+els.speedIcon.innerText = currentState.speed + 'x';
+els.speedBtn.onclick = () => {
+    const speeds = [0.7, 1.0, 1.2];
+    let idx = speeds.indexOf(currentState.speed);
+    currentState.speed = speeds[(idx + 1) % speeds.length]; // Cicla as velocidades
+    localStorage.setItem('speech_speed', currentState.speed);
+    els.speedIcon.innerText = currentState.speed + 'x';
+};
+
+// --- MOTOR TTS (ÁUDIO) ---
+window.speak = function(text) {
+    if (!window.speechSynthesis) return;
+
+    // Reseta o motor (importante para Chrome/Android)
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.resume();
+
+    const cleanText = text.split('(')[0].trim().normalize('NFC');
+    const msg = new SpeechSynthesisUtterance(cleanText);
+    
+    // Seleção Inteligente de Voz
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Tenta voz local (offline) primeiro
+    const voice = voices.find(v => (v.lang.includes('zh-CN') || v.lang.includes('zh')) && v.localService) 
+               || voices.find(v => v.lang.includes('zh')); // Fallback
+
+    if (voice) msg.voice = voice;
+    
+    msg.lang = 'zh-CN';
+    msg.rate = currentState.speed;
+
+    // Hack para acordar o sistema se a lista estiver vazia (Mobile)
+    if (voices.length === 0) {
+        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.speak(msg);
+    } else {
+        window.speechSynthesis.speak(msg);
+    }
+};
+
+// --- LÓGICA DO APP ---
 async function init() {
     try {
         const response = await fetch('assets/data.json');
         appData = await response.json();
-
+        
         els.hsk.value = currentState.hsk;
         els.mode.value = currentState.mode;
-
+        
         loadWeights();
         nextRound();
     } catch (e) {
-        els.content.innerHTML = "<p style='color:red; text-align:center'>Erro ao carregar dados. <br>Use Ctrl+Shift+R para limpar o cache.</p>";
-        console.error(e);
+        els.content.innerHTML = "<p style='text-align:center; color: red'>Erro ao carregar dados.<br>Verifique se rodou o script Python.</p>";
     }
 }
 
-// --- Lógica de Pesos ---
+// Pesos (Spaced Repetition)
 function getWeightsKey() { return `w_${currentState.hsk}_${currentState.mode}`; }
 
 function loadWeights() {
@@ -63,7 +100,7 @@ function loadWeights() {
     const stored = localStorage.getItem(key);
     let allKeys = [];
     const data = appData[currentState.hsk];
-
+    
     if (!data) return;
     if (currentState.mode === 'vocab') allKeys = Object.keys(data.vocab);
     else allKeys = data[currentState.mode].map(i => i.id);
@@ -106,120 +143,84 @@ function updateWeight(key) {
     saveWeights();
 }
 
-// --- Helpers de Renderização ---
+// Helpers de Texto
 function splitPinyin(text) {
     if (!text) return { han: '', pin: '' };
     text = text.normalize('NFC');
     const regex = /^(.+?)\s*\(([^()]*)\)\s*$/;
     const match = text.match(regex);
-    if (match) return { han: match[1], pin: match[2] };
-    return { han: text, pin: '' };
+    return match ? { han: match[1], pin: match[2] } : { han: text, pin: '' };
 }
 
-function renderBlock(text, label, extraClass = '') {
+function renderBlock(text, label, extraClass='') {
     const { han, pin } = splitPinyin(text);
-    // Normalizamos para garantir que o TTS leia corretamente
-    const cleanHan = han.normalize('NFC');
-
+    // Escape para JS
+    const cleanHan = han.replace(/'/g, "\\'"); 
+    
     return `
     <div class="cn-block ${extraClass}">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
+            <div style="flex: 1">
                 ${label ? `<span class="label">${label}</span>` : ''}
                 <div class="chinese-text">${han}</div>
                 ${pin ? `<div class="pinyin-text">${pin}</div>` : ''}
             </div>
-            <!-- Botão de Áudio -->
-            <button onclick="window.speak(\`${cleanHan}\`)" class="audio-btn" title="Ouvir">
+            <button onclick="window.speak('${cleanHan}')" class="audio-btn" title="Ouvir">
                 <span class="material-icons-round">volume_up</span>
             </button>
         </div>
     </div>`;
 }
 
-// --- Funções Principais ---
+// Renderização Principal
 function nextRound() {
     const key = draftItem();
     if (!key) { els.content.innerHTML = "Sem dados."; return; }
-
+    
     const data = appData[currentState.hsk];
     qnaStep = 0;
-
     els.revealBtn.classList.remove('hidden');
     els.nextBtn.classList.add('hidden');
     els.revealBtn.innerText = "Mostrar Tradução";
 
-    // Sempre aplica fade-in no carregamento inicial
     let html = `<div class="fade-in">`;
 
     if (currentState.mode === 'vocab') {
-        currentItem = { key: key, data: data.vocab[key] };
+        currentItem = { key, data: data.vocab[key] };
         html += renderBlock(key, 'Termo');
-        html += `<div id="part-pt"></div>`; // Placeholder
-    }
+        html += `<div id="part-pt"></div>`;
+    } 
     else if (currentState.mode === 'text') {
         const item = data.text.find(x => x.id === key);
-        currentItem = { key: key, data: item };
+        currentItem = { key, data: item };
         html += renderBlock(item.cn, 'Texto');
-        html += `<div id="part-pt"></div>`; // Placeholder
+        html += `<div id="part-pt"></div>`;
     }
     else if (currentState.mode === 'qna') {
-        els.revealBtn.innerText = "Mostrar Resposta";
         const item = data.qna.find(x => x.id === key);
-        currentItem = { key: key, data: item };
-
+        currentItem = { key, data: item };
+        els.revealBtn.innerText = "Mostrar Resposta";
         html += renderBlock(item.cn.q, 'Pergunta');
-        html += `<div id="qna-answer"></div>`; // Placeholder
-        html += `<div id="part-pt"></div>`; // Placeholder
+        html += `<div id="qna-answer"></div><div id="part-pt"></div>`;
     }
-
-    html += `</div>`; // fecha fade-in wrapper
+    
+    html += `</div>`;
     els.content.innerHTML = html;
 }
 
 function reveal() {
-    // 1. TEXTO e VOCAB
     if (currentState.mode !== 'qna') {
         const ptDiv = document.getElementById('part-pt');
-
-        let ptText = (currentState.mode === 'vocab') ? currentItem.data : currentItem.data.pt;
-
-        ptDiv.innerHTML = `
-            <div class="solid-divider"></div>
-            <div class="fade-in">
-                <span class="label">Tradução</span>
-                <div class="pt-text">${ptText}</div>
-            </div>
-        `;
+        const txt = (currentState.mode === 'vocab') ? currentItem.data : currentItem.data.pt;
+        ptDiv.innerHTML = `<div class="solid-divider"></div><div class="fade-in"><span class="label">Tradução</span><div class="pt-text">${txt}</div></div>`;
         finishRound();
-    }
-    // 2. QnA (Passo a passo)
-    else {
+    } else {
         if (qnaStep === 0) {
-            // Passo 1: Revelar Resposta em Chinês
-            const ansDiv = document.getElementById('qna-answer');
-            ansDiv.innerHTML = `
-                <div class="divider"></div>
-                <div class="fade-in">
-                    ${renderBlock(currentItem.data.cn.a, 'Resposta')}
-                </div>
-            `;
+            document.getElementById('qna-answer').innerHTML = `<div class="divider"></div><div class="fade-in">${renderBlock(currentItem.data.cn.a, 'Resposta')}</div>`;
             els.revealBtn.innerText = "Mostrar Tradução";
             qnaStep = 1;
-        }
-        else if (qnaStep === 1) {
-            // Passo 2: Revelar Português
-            const ptDiv = document.getElementById('part-pt');
-            ptDiv.innerHTML = `
-                <div class="solid-divider"></div>
-                <div class="fade-in">
-                    <span class="label">Tradução Pergunta</span>
-                    <div class="pt-text">${currentItem.data.pt.q}</div>
-                    
-                    <span class="label">Tradução Resposta</span>
-                    <div class="pt-text">${currentItem.data.pt.a}</div>
-                </div>
-            `;
+        } else {
+            document.getElementById('part-pt').innerHTML = `<div class="solid-divider"></div><div class="fade-in"><span class="label">Tradução Pergunta</span><div class="pt-text">${currentItem.data.pt.q}</div><span class="label">Tradução Resposta</span><div class="pt-text">${currentItem.data.pt.a}</div></div>`;
             finishRound();
         }
     }
@@ -231,76 +232,6 @@ function finishRound() {
     updateWeight(currentItem.key);
 }
 
-// --- Listeners ---
+// Event Listeners
 els.revealBtn.onclick = reveal;
-els.nextBtn.onclick = nextRound;
-
-els.hsk.onchange = (e) => {
-    currentState.hsk = e.target.value;
-    localStorage.setItem('last_hsk', currentState.hsk);
-    loadWeights();
-    nextRound();
-};
-
-els.mode.onchange = (e) => {
-    currentState.mode = e.target.value;
-    localStorage.setItem('last_mode', currentState.mode);
-    loadWeights();
-    nextRound();
-};
-
-init();
-
-// Função para carregar vozes (importante para Chrome/Edge)
-let voices = [];
-function loadVoices() {
-    voices = window.speechSynthesis.getVoices();
-}
-// Aciona o carregamento
-window.speechSynthesis.onvoiceschanged = loadVoices;
-loadVoices();
-
-window.speak = function(text) {
-    const synth = window.speechSynthesis;
-    synth.resume();
-    synth.cancel();
-
-    const chineseOnly = text.split('(')[0].trim().normalize('NFC');
-    console.log("--- TESTE DE ÁUDIO ---");
-    console.log("Texto:", chineseOnly);
-
-    // Listar vozes para diagnóstico no Eruda
-    let voices = synth.getVoices();
-    console.log("Total de vozes encontradas:", voices.length);
-    
-    // Procura especificamente vozes de Mandarim
-    let zhVoices = voices.filter(v => v.lang.includes('zh') || v.lang.includes('CN'));
-    zhVoices.forEach(v => console.log(`Disponível: ${v.name} (${v.localService ? 'Offline' : 'Online'})`));
-
-    const msg = new SpeechSynthesisUtterance(chineseOnly);
-    msg.lang = 'zh-CN';
-    msg.rate = 0.8;
-
-    // TENTA ENCONTRAR UMA VOZ QUE SEJA LOCAL (OFFLINE)
-    // No Android, geralmente é "Google 普通话" ou "Samsung Core"
-    let bestVoice = zhVoices.find(v => v.localService === true) || zhVoices[0];
-
-    if (bestVoice) {
-        msg.voice = bestVoice;
-        console.log("Voz escolhida:", bestVoice.name);
-    } else {
-        console.warn("Nenhuma voz chinesa encontrada na lista!");
-    }
-
-    msg.onstart = () => console.log(">>> Áudio disparado!");
-    msg.onerror = (e) => console.error("ERRO NO MOTOR:", e.error);
-
-    synth.speak(msg);
-};
-
-// HACK PARA MOBILE: As vozes demoram a carregar. Esse evento força o sistema a acordar.
-window.speechSynthesis.onvoiceschanged = () => {
-    console.log("Vozes atualizadas pelo sistema.");
-};
-
-
+els.nextBtn.oncl
