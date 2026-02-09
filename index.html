@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estudo HSK</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e1e1e">
+</head>
+
+<body>
+    <header>
+        <select id="hskLevel">
+            <option value="HSK1">HSK 1</option>
+            <option value="HSK2">HSK 2</option>
+            <option value="HSK3">HSK 3</option>
+            <option value="HSK4">HSK 4</option>
+            <option value="HSK5">HSK 5</option>
+            <option value="HSK6">HSK 6</option>
+        </select>
+        <select id="studyMode">
+            <option value="text">Texto</option>
+            <option value="qna">Diálogo</option>
+            <option value="vocab">Vocabulário</option>
+        </select>
+    </header>
+
+    <main id="app">
+        <div id="card" class="card">
+            <div id="content-area">
+                <!-- Conteúdo injetado via JS -->
+            </div>
+            <div id="action-area">
+                <button id="revealBtn">Mostrar Tradução</button>
+                <button id="nextBtn" class="hidden">Próximo</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
