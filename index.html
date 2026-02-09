@@ -1,16 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estudo HSK</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <!-- Ícones do Google Fonts para o botão de tema (opcional, mas fica bonito) -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 </head>
-
 <body>
     <header>
         <div class="controls">
@@ -29,26 +26,26 @@
                 <option value="vocab">Vocabulário</option>
             </select>
         </div>
-        <button id="themeToggle" class="icon-btn" aria-label="Mudar Tema">
-            <span class="material-icons-round">light_mode</span>
-        </button>
+        <div class="header-btns">
+            <button id="speedToggle" class="icon-btn" title="Velocidade da Fala">
+                <span id="speedIcon" style="font-size: 14px; font-weight: bold;">1x</span>
+            </button>
+            <button id="themeToggle" class="icon-btn">
+                <span class="material-icons-round">light_mode</span>
+            </button>
+        </div>
     </header>
 
     <main id="app">
         <div id="card" class="card">
-            <div id="content-area">
-                <!-- Conteúdo injetado via JS -->
-            </div>
+            <div id="content-area"></div>
             <div id="action-area">
                 <button id="revealBtn">Mostrar Tradução</button>
                 <button id="nextBtn" class="hidden">Próximo</button>
             </div>
         </div>
     </main>
-    
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
-    
+
     <script src="app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
@@ -56,6 +53,4 @@
         }
     </script>
 </body>
-
-
 </html>
