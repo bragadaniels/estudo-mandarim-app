@@ -130,7 +130,7 @@ function renderBlock(text, label, extraClass = '') {
                 ${pin ? `<div class="pinyin-text">${pin}</div>` : ''}
             </div>
             <!-- Botão de Áudio -->
-            <button onclick="speak('${cleanHan}')" class="audio-btn" title="Ouvir">
+            <button onclick="window.speak(\`${cleanHan}\`)" class="audio-btn" title="Ouvir">
                 <span class="material-icons-round">volume_up</span>
             </button>
         </div>
@@ -305,3 +305,4 @@ window.speak = function(text) {
 
     window.speechSynthesis.speak(msg);
 };
+
