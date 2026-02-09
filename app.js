@@ -262,46 +262,23 @@ loadVoices();
 
 // Forçamos a função a ser global para que o onclick do HTML a encontre sempre
 window.speak = function(text) {
-    console.log("Tentando falar:", text); // Isso TEM que aparecer no Eruda agora
-
-    if (!window.speechSynthesis) {
-        console.error("Navegador não suporta speechSynthesis");
-        return;
-    }
-
-    // Para o que estiver falando
+    // 1. Acorda o motor (Fix para Chrome Android)
+    window.speechSynthesis.resume();
     window.speechSynthesis.cancel();
 
-    // Limpeza rigorosa
+    // 2. Limpa o texto
     const chineseOnly = text.split('(')[0].trim().normalize('NFC');
+    console.log("Falando agora:", chineseOnly);
+
     const msg = new SpeechSynthesisUtterance(chineseOnly);
     
-    // Tenta pegar vozes
-    let voices = window.speechSynthesis.getVoices();
-    
-    // No mobile, se as vozes não carregaram, tentamos buscar de novo
-    if (voices.length === 0) {
-        console.log("Vozes vazias, tentando recarregar...");
-        voices = window.speechSynthesis.getVoices();
-    }
-
-    // Tenta achar a voz chinesa
-    let chineseVoice = voices.find(v => (v.lang.includes('zh-CN') || v.lang.includes('zh')) && !v.name.includes('Online'));
-    
-    if (!chineseVoice) {
-        chineseVoice = voices.find(v => v.lang.includes('zh'));
-    }
-
-    if (chineseVoice) {
-        msg.voice = chineseVoice;
-        console.log("Voz selecionada no celular:", chineseVoice.name);
-    }
-
-    msg.lang = 'zh-CN';
+    // 3. NÃO definimos msg.voice. 
+    // Deixamos o sistema operacional escolher a voz padrão de chinês.
+    msg.lang = 'zh-CN'; 
     msg.rate = 0.8;
 
-    msg.onstart = () => console.log("Áudio começou!");
-    msg.onerror = (e) => console.error("Erro no TTS:", e.error);
+    msg.onstart = () => console.log(">>> O sistema diz que está saindo som agora!");
+    msg.onerror = (e) => console.error("Erro real:", e.error);
 
     window.speechSynthesis.speak(msg);
 };
