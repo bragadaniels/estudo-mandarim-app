@@ -184,9 +184,16 @@ button:active {
 }
 
 /* Botão de Tema (Redondo e pequeno) */
+
+.header-btns {
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+}
+
 .icon-btn {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     padding: 0;
     margin: 0;
     border-radius: 50%;
@@ -196,6 +203,7 @@ button:active {
     align-items: center;
     justify-content: center;
     border: 1px solid var(--border);
+    cursor: pointer;
 }
 
 .icon-btn:hover {
@@ -226,10 +234,8 @@ button:active {
 }
 
 .audio-btn {
-    width: 40px !important;
-    height: 40px !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    width: 44px !important;
+    height: 44px !important;
     background: transparent !important;
     color: var(--accent) !important;
     border: 1px solid var(--border) !important;
@@ -237,7 +243,7 @@ button:active {
     display: flex !important;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
+    margin: 0 !important;
     flex-shrink: 0;
 }
 
@@ -247,4 +253,6 @@ button:active {
 
 .audio-btn .material-icons-round {
     font-size: 20px;
+
 }
+
