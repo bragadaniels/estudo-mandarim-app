@@ -1,5 +1,3 @@
-// ==================== app.js (versão limpa + toggle de velocidade) ====================
-
 let appData = {};
 let currentItem = null;
 let qnaStep = 0;
@@ -9,10 +7,8 @@ let currentState = {
 };
 let weights = {};
 
-// Velocidade da fala (persistente)
 let speechRate = parseFloat(localStorage.getItem('speechRate')) || 1.0;
 
-// Controle de Tema
 const themeToggleBtn = document.getElementById('themeToggle');
 const savedTheme = localStorage.getItem('theme') || 'dark';
 
@@ -34,7 +30,6 @@ themeToggleBtn.onclick = () => {
     }
 };
 
-// Toggle de velocidade da fala
 let rateToggleBtn;
 
 function createRateToggle() {
@@ -42,28 +37,50 @@ function createRateToggle() {
     rateToggleBtn.className = 'icon-btn rate-toggle';
     rateToggleBtn.style.marginLeft = '8px';
 
-    rateToggleBtn.innerHTML = `
-        <span class="material-icons-round volume-icon">volume_up</span>
-        <span id="rate-text" class="rate-text">${speechRate}x</span>
-    `;
+    rateToggleBtn.innerHTML = `<span class="material-icons-round volume-icon">play_arrow</span>`;
 
-    document.querySelector('header').appendChild(rateToggleBtn);
+    const header = document.querySelector('header');
+    header.insertBefore(rateToggleBtn, themeToggleBtn);
     rateToggleBtn.onclick = cycleSpeechRate;
 }
 
+function showRateToast() {
+    const toast = document.createElement('div');
+    toast.textContent = `${speechRate}x`;
+    toast.className = 'rate-toast';
+    document.body.appendChild(toast);
+
+    setTimeout(() => toast.remove(), 800);
+}
+
 function cycleSpeechRate() {
-    const rates = [0.75, 1.0, 1.25];
+    const rates = [0.5, 1.0, 1.5];
     let idx = rates.findIndex(r => Math.abs(r - speechRate) < 0.01);
     idx = (idx + 1) % rates.length;
     speechRate = rates[idx];
     localStorage.setItem('speechRate', speechRate);
     updateRateDisplay();
+    showRateToast();
+    updateRateIcon();
 }
 
 function updateRateDisplay() {
     const textEl = document.getElementById('rate-text');
     if (textEl) textEl.textContent = `${speechRate}x`;
 }
+
+function updateRateIcon() {
+    if (!rateToggleBtn) return;
+
+    const icon = rateToggleBtn.querySelector('.material-icons-round');
+
+    if (speechRate === 0.5) icon.textContent = 'slow_motion_video';
+    else if (speechRate === 1.0) icon.textContent = 'play_arrow';
+    else if (speechRate === 1.5) icon.textContent = 'fast_forward';
+    rateToggleBtn.title = `Velocidade: ${speechRate}x`;
+
+}
+
 
 // --- Elementos ---
 const els = {
@@ -85,8 +102,8 @@ async function init() {
 
         loadWeights();
         nextRound();
-
-        createRateToggle();           // cria o botão de velocidade
+        createRateToggle();
+        updateRateIcon();
     } catch (e) {
         els.content.innerHTML = "<p style='color:red; text-align:center'>Erro ao carregar dados. <br>Use Ctrl+Shift+R para limpar o cache.</p>";
         console.error(e);
@@ -156,7 +173,6 @@ function splitPinyin(text) {
 
 function renderBlock(text, label, extraClass = '') {
     const { han, pin } = splitPinyin(text);
-    // Normalizamos para garantir que o TTS leia corretamente
     const cleanHan = han.normalize('NFC');
 
     return `
@@ -187,19 +203,18 @@ function nextRound() {
     els.nextBtn.classList.add('hidden');
     els.revealBtn.innerText = "Mostrar Tradução";
 
-    // Sempre aplica fade-in no carregamento inicial
     let html = `<div class="fade-in">`;
 
     if (currentState.mode === 'vocab') {
         currentItem = { key: key, data: data.vocab[key] };
         html += renderBlock(key, 'Termo');
-        html += `<div id="part-pt"></div>`; // Placeholder
+        html += `<div id="part-pt"></div>`;
     }
     else if (currentState.mode === 'text') {
         const item = data.text.find(x => x.id === key);
         currentItem = { key: key, data: item };
         html += renderBlock(item.cn, 'Texto');
-        html += `<div id="part-pt"></div>`; // Placeholder
+        html += `<div id="part-pt"></div>`;
     }
     else if (currentState.mode === 'qna') {
         els.revealBtn.innerText = "Mostrar Resposta";
@@ -207,11 +222,11 @@ function nextRound() {
         currentItem = { key: key, data: item };
 
         html += renderBlock(item.cn.q, 'Pergunta');
-        html += `<div id="qna-answer"></div>`; // Placeholder
-        html += `<div id="part-pt"></div>`; // Placeholder
+        html += `<div id="qna-answer"></div>`;
+        html += `<div id="part-pt"></div>`;
     }
 
-    html += `</div>`; // fecha fade-in wrapper
+    html += `</div>`;
     els.content.innerHTML = html;
 }
 
@@ -251,10 +266,10 @@ function reveal() {
             ptDiv.innerHTML = `
                 <div class="solid-divider"></div>
                 <div class="fade-in">
-                    <span class="label">Tradução Pergunta</span>
+                    <span class="label">Tradução da Pergunta</span>
                     <div class="pt-text">${currentItem.data.pt.q}</div>
                     
-                    <span class="label">Tradução Resposta</span>
+                    <span class="label">Tradução da Resposta</span>
                     <div class="pt-text">${currentItem.data.pt.a}</div>
                 </div>
             `;
@@ -271,13 +286,13 @@ function finishRound() {
 
 // --- Listeners ---
 // --- Função de fala (limpa e com velocidade) ---
-let voices = [];
-function loadVoices() {
-    voices = window.speechSynthesis.getVoices();
-}
+//let voices = [];
+//function loadVoices() {
+//    voices = window.speechSynthesis.getVoices();
+//}
 
-window.speechSynthesis.onvoiceschanged = loadVoices;
-loadVoices();
+//window.speechSynthesis.onvoiceschanged = loadVoices;
+//loadVoices();
 
 window.speak = function (text) {
     const synth = window.speechSynthesis;
@@ -288,9 +303,8 @@ window.speak = function (text) {
 
     const msg = new SpeechSynthesisUtterance(chineseOnly);
     msg.lang = 'zh-CN';
-    msg.rate = speechRate;                     // ← usa a velocidade escolhida
+    msg.rate = speechRate;
 
-    // Tenta usar voz chinesa offline
     let zhVoices = synth.getVoices().filter(v => v.lang.includes('zh') || v.lang.includes('CN'));
     let bestVoice = zhVoices.find(v => v.localService === true) || zhVoices[0];
     if (bestVoice) msg.voice = bestVoice;
@@ -298,13 +312,10 @@ window.speak = function (text) {
     synth.speak(msg);
 };
 
-// HACK para mobile (mantido, mas sem logs)
-window.speechSynthesis.onvoiceschanged = () => {
-    loadVoices();
-};
+//window.speechSynthesis.onvoiceschanged = () => {
+//    loadVoices();
+//};
 
-// (as funções loadWeights, draftItem, updateWeight, splitPinyin, renderBlock,
-// nextRound, reveal, finishRound e os listeners continuam exatamente iguais)
 
 els.revealBtn.onclick = reveal;
 els.nextBtn.onclick = nextRound;

@@ -1,37 +1,27 @@
 :root {
-    /* Tema Escuro (Padrão) */
     --bg: #121212;
     --card-bg: #1e1e1e;
     --text: #e0e0e0;
     --text-sec: #a0a0a0;
     --accent: #bb86fc;
-    /* Roxo suave */
     --btn-text: #000;
     --secondary: #03dac6;
-    /* Verde água */
     --chinese: #81d4fa;
-    /* Azul claro */
     --pinyin: #fff176;
-    /* Amarelo */
     --border: #333;
     --select-bg: #333;
 }
 
 [data-theme="light"] {
-    /* Tema Claro */
     --bg: #f0f2f5;
     --card-bg: #ffffff;
     --text: #212121;
     --text-sec: #666666;
     --accent: #6200ee;
-    /* Roxo forte */
     --btn-text: #fff;
     --secondary: #018786;
-    /* Verde escuro */
     --chinese: #0277bd;
-    /* Azul escuro */
     --pinyin: #d17d00;
-    /* Laranja escuro para contraste */
     --border: #e0e0e0;
     --select-bg: #fff;
 }
@@ -53,12 +43,9 @@ header {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    /* Empurra o botão de tema para a direita */
     position: relative;
-    /* Necessário para centralizar o filho absoluto */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     height: 60px;
-    /* Altura fixa ajuda na estabilidade */
     box-sizing: border-box;
 }
 
@@ -113,7 +100,6 @@ main {
     transition: background-color 0.3s;
 }
 
-/* Tipografia */
 .chinese-text {
     font-size: 1.8rem;
     color: var(--chinese);
@@ -146,7 +132,6 @@ main {
     margin-top: 15px;
 }
 
-/* Separadores */
 .divider {
     border: 0;
     border-top: 1px dashed var(--border);
@@ -159,7 +144,6 @@ main {
     margin: 15px 0;
 }
 
-/* Botões */
 button {
     width: 100%;
     padding: 16px;
@@ -183,7 +167,6 @@ button:active {
     color: #fff;
 }
 
-/* Botão de Tema (Redondo e pequeno) */
 .icon-btn {
     width: 40px;
     height: 40px;
@@ -202,12 +185,10 @@ button:active {
     background-color: rgba(128, 128, 128, 0.1);
 }
 
-/* Utilitários */
 .hidden {
     display: none !important;
 }
 
-/* Animações Consistentes */
 .fade-in {
     animation: fadeInUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
     will-change: transform, opacity;
@@ -249,4 +230,16 @@ button:active {
     font-size: 20px;
 }
 
-/* Botão de velocidade - ícone + texto embaixo */
+.rate-toast {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: var(--card-bg);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .2);
+    animation: fadeInUp 0.3s ease;
+    pointer-events: none;
+}
