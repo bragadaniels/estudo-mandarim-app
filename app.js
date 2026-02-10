@@ -284,16 +284,6 @@ function finishRound() {
     updateWeight(currentItem.key);
 }
 
-// --- Listeners ---
-// --- Função de fala (limpa e com velocidade) ---
-//let voices = [];
-//function loadVoices() {
-//    voices = window.speechSynthesis.getVoices();
-//}
-
-//window.speechSynthesis.onvoiceschanged = loadVoices;
-//loadVoices();
-
 window.speak = function (text) {
     const synth = window.speechSynthesis;
     synth.resume();
@@ -312,9 +302,6 @@ window.speak = function (text) {
     synth.speak(msg);
 };
 
-//window.speechSynthesis.onvoiceschanged = () => {
-//    loadVoices();
-//};
 
 
 els.revealBtn.onclick = reveal;
