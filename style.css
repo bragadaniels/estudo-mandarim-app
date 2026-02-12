@@ -308,3 +308,40 @@ button:active {
         font-size: 0.95rem;
     }
 }
+
+/* Estilo para o modo Audição */
+.listening-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px 0;
+}
+
+.big-audio-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: var(--card-bg);
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.big-audio-btn:hover {
+    background-color: var(--accent);
+    color: var(--btn-text);
+    transform: scale(1.1);
+}
+
+.big-audio-btn .material-icons-round {
+    font-size: 40px;
+}
+
+button.audio-btn.hidden {
+    display: none !important;
+}
